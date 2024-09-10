@@ -1,5 +1,5 @@
 # CloseTabsExtension
-This Browser Extension helps to manage browser tabs. Upon opening a new tab, it asks you whether to be used or not.
+This browser extension helps you manage tabs efficiently. When you open a new tab, it prompts you to confirm if the tab should be tracked. If confirmed, the tab will automatically close after 5 minutes of inactivity.
 When chosen to be used it closes the tab after 5 minutes of inactivit.
 ## Package the Extension
 Ensure your extension is packaged as a .xpi file (Firefox extension format). If you haven't done this yet:
