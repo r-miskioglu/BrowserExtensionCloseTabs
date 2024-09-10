@@ -1,0 +1,20 @@
+{
+  "manifest_version": 2,
+  "name": "Auto-Close Tab Extension",
+  "version": "1.0",
+  "permissions": [
+    "tabs",
+    "webNavigation",
+    "activeTab"
+  ],
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": true
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["contentScript.js"]
+    }
+  ]
+}
