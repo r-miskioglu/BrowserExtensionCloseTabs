@@ -1,6 +1,7 @@
 {
   "manifest_version": 2,
-  "name": "Auto-Close Tab Extension",
+  "name": "AutoCloseTabExtension",
+  "description": "Auto-Close Tab Extension",
   "version": "1.0",
   "permissions": [
     "tabs",
@@ -16,5 +17,10 @@
       "matches": ["<all_urls>"],
       "js": ["contentScript.js"]
     }
-  ]
+  ],
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{bb9e85dc-02a9-44d9-ad3d-e111448c682c}"
+    }
+  }
 }
