@@ -1,11 +1,12 @@
 # CloseTabsExtension
 This browser extension helps you manage tabs efficiently. When you open a new tab, it prompts you to confirm if the tab should be tracked. If confirmed, the tab will automatically close after 5 minutes of inactivity.
 When chosen to be used it closes the tab after 5 minutes of inactivit.
+This only works in Firefox Nightly!
 ## Package the Extension
 Ensure your extension is packaged as a .xpi file (Firefox extension format). If you haven't done this yet:
 Zip the extension folder (including manifest.json and all other necessary files).
 Change the file extension from .zip to .xpi.
-## Temporarily Install (for Testing) in Firefox
+## Temporarily Install (for Testing) in Firefox Nig
 Open Firefox.
 Type about:debugging in the address bar.
 Click "This Firefox" on the sidebar.
