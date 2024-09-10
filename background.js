@@ -8,10 +8,10 @@ function connected(port) {
 
     const tabId = port.sender.tab.id;
 
-    port.onDisconnect.addListener((port) => {
-        const tabId = port.sender.tab.id;
-        delete tabPorts[tabId]
-    });
+//    port.onDisconnect.addListener((port) => {
+//        const tabId = port.sender.tab.id;
+//        delete tabPorts[tabId]
+//    });
 
     if(!(tabId in tabPorts)){
         tabPorts[tabId] = {port: port, state: "unsure"}
