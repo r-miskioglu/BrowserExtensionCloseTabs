@@ -1,65 +1,121 @@
-let tabPorts = {};
-const TIMEOUT = 5*60000; // 5 minutes in milliseconds
+const TIME = 1; //in minutes
+const DEFAULTAUTOCLOSE = false;
 
-//tab state 0 means, no timer and showModal, 1 means timer and hideModal, 2 means no timer and hideModal
-//when the question for the tab arises for the first time the state is 0
-
-function connected(port) {
-
-    const tabId = port.sender.tab.id;
-
-//    port.onDisconnect.addListener((port) => {
-//        const tabId = port.sender.tab.id;
-//        delete tabPorts[tabId]
-//    });
-
-    if(!(tabId in tabPorts)){
-        tabPorts[tabId] = {port: port, state: "unsure"}
-        tabPorts[tabId].port.postMessage({action: "showModal"});
-    }
-    // tabPorts[tabId].port.postMessage({action: "checkReady"});
-    tabPorts[tabId].port.onMessage.addListener((m) => {
-        if(m.action === "enableAutoClose"){
-            tabPorts[tabId].state = "useAutoClose";
-            resetTabTimeout(tabId);
-        };
-        if(m.action === "cancelAutoClose"){
-            tabPorts[tabId].state = "dontUseAutoClose";
-        };
-        if(m.action === "inputDetected"){
-            resetTabTimeout(tabId);
-        }
+//storing data with tabId as Key and {useAutoClose:boolean, showModal:boolean}
+function storeData(tabId, data) {
+    return new Promise((resolve, reject) => {
+        const dataToStore = {};
+        dataToStore[tabId.toString()] = JSON.stringify(data);
+        
+        browser.storage.local.set(dataToStore, function() {
+            if (browser.runtime.lastError) {
+                reject(browser.runtime.lastError);
+            } else {
+                resolve();
+            }
+        });
     });
 }
 
-browser.runtime.onConnect.addListener(connected);
-
-function closeTab(tabId) {
-    chrome.tabs.remove(tabId);
+function getData(tabId) {
+    return new Promise((resolve, reject) => {
+        browser.storage.local.get(String(tabId), function(result) {
+            if (browser.runtime.lastError) {
+                reject(browser.runtime.lastError);
+            } else {
+                const data = result[String(tabId)];
+                if (data) {
+                    resolve(JSON.parse(data));
+                } else {
+                    resolve(null);
+                }
+            }
+        });
+    });
 }
 
-function resetTabTimeout(tabId) {
-    //check for tab state
-    if(tabId in tabPorts){
-        if(tabPorts[tabId].state === "useAutoClose"){
-            tabPorts[tabId].timeout = setTimeout(() => closeTab(tabId), TIMEOUT);
+function removeData(tabId){
+    browser.storage.local.remove(tabId, function() {
+        if (browser.runtime.lastError) {
+            console.error(browser.runtime.lastError);
+        }});
+}
+
+async function initContentScript(tabId) {
+    try {
+        let data = await getData(tabId);
+        
+        if (!data) {
+            // Create data
+            data = {
+                useAutoClose: false,
+                showModal: true,
+            };
+            await storeData(tabId, data);
         }
+
+        return data;
+    } catch (error) {
+        console.error("Error initializing content script:", error);
+        return null;
     }
 }
 
-browser.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.status === 'complete') {
-        resetTabTimeout(tabId);
-    }
+browser.runtime.onConnect.addListener(function(port) {
+
+    const tabId = port.sender.tab.id;
+
+    port.onMessage.addListener(async function(msg) {
+
+        if(msg.action === "init content script"){
+            try{
+                const result = await initContentScript(tabId);
+                port.postMessage({action: "init content script", showModal:result.showModal});
+            }
+            catch(err){console.error(err)}
+        }
+
+        if(msg.action === "cancelAutoClose"){
+            try{
+                const data = await getData(tabId);
+            
+                await browser.alarms.clear(tabId.toString())
+
+                data.showModal = false;
+                data.useAutoClose = false;
+                await storeData(tabId, data);
+
+            }catch(err){console.error(err)}
+        }
+        if(msg.action === "enableAutoClose"){
+            try{            
+                const data = await getData(tabId);
+                
+                await browser.alarms.create(tabId.toString(), {delayInMinutes:TIME})
+
+                data.showModal = false;
+                data.useAutoClose = true;
+                await storeData(tabId, data);
+            }catch(err){console.error(err)}
+
+        }
+        if(msg.action === "inputDetected"){
+            try{            
+                const data = await getData(tabId);
+                if(data.useAutoClose){
+                    await browser.alarms.create(tabId.toString(), {delayInMinutes:TIME})
+                }            
+            }catch(err){console.error(err)}
+            
+        }
+    });
 });
 
-browser.tabs.onActivated.addListener((activeInfo) => {
-    resetTabTimeout(activeInfo.tabId);
-});
+//actually deleting the browser when chosen
+function closeTab(tabId) {
+    browser.tabs.remove(parseInt(tabId));
+}
 
-browser.tabs.onRemoved.addListener((tabId) => {
-    if (tabPorts[tabId].timeout) {
-        clearTimeout(tabPorts[tabId].timeout);
-        delete tabPorts[tabId];
-    }
+browser.alarms.onAlarm.addListener((alarm) => {
+    closeTab(alarm.name)
 });
